@@ -44,7 +44,7 @@ export default function CreateScreen() {
   };
 
   const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
-  const createPost = useMutation(api.posts.createPosts);
+  const createPost = useMutation(api.posts.createPost);
 
   const handleShare = async () => {
     if (!selectedImage) return;

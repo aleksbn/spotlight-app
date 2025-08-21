@@ -7,7 +7,7 @@ export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
 
-export const createPosts = mutation({
+export const createPost = mutation({
   args: {
     caption: v.optional(v.string()),
     storageId: v.id("_storage"),
@@ -27,6 +27,7 @@ export const createPosts = mutation({
     const imageUrl = await ctx.storage.getUrl(args.storageId);
     if (!imageUrl) throw new Error("Image not found");
 
+    // create post
     const postId = await ctx.db.insert("posts", {
       userId: currentUser._id,
       imageUrl,
@@ -36,6 +37,7 @@ export const createPosts = mutation({
       comments: 0,
     });
 
+    // increment user's post count by 1
     await ctx.db.patch(currentUser._id, {
       posts: currentUser.posts + 1,
     });
