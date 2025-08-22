@@ -28,8 +28,6 @@ export default function CreateScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState<boolean>(false);
 
-  console.log("Mutation:", api);
-
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
