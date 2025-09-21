@@ -1,14 +1,9 @@
 import { COLORS } from "@/constants/theme";
-import { api } from "@/convex/_generated/api";
 import { styles } from "@/styles/create.styles";
 import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation } from "convex/react";
-import * as FileSystem from "expo-file-system";
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -20,13 +15,21 @@ import {
   View,
 } from "react-native";
 
+import { Image } from "expo-image";
+
+import * as FileSystem from "expo-file-system/legacy";
+import * as ImagePicker from "expo-image-picker";
+
+import { api } from "@/convex/_generated/api";
+import { useMutation } from "convex/react";
+
 export default function CreateScreen() {
   const router = useRouter();
   const { user } = useUser();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [caption, setCaption] = useState<string>("");
+
+  const [caption, setCaption] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isSharing, setIsSharing] = useState<boolean>(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -36,9 +39,7 @@ export default function CreateScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
+    if (!result.canceled) setSelectedImage(result.assets[0].uri);
   };
 
   const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
@@ -46,35 +47,38 @@ export default function CreateScreen() {
 
   const handleShare = async () => {
     if (!selectedImage) return;
+
     try {
       setIsSharing(true);
       const uploadUrl = await generateUploadUrl();
 
-      const uploadResults = await FileSystem.uploadAsync(
+      const uploadResult = await FileSystem.uploadAsync(
         uploadUrl,
         selectedImage,
         {
-          fieldName: "file", // Convex expects the key to be `file`
           httpMethod: "POST",
-          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          mimeType: "image/jpeg",
         }
       );
 
-      if (uploadResults.status !== 200) {
-        throw new Error("Image upload failed");
-      }
+      if (uploadResult.status !== 200) throw new Error("Upload failed");
 
-      const { storageId } = JSON.parse(uploadResults.body);
+      const { storageId } = JSON.parse(uploadResult.body);
       await createPost({ storageId, caption });
-      router.push(`/(tabs)`);
+
+      setSelectedImage(null);
+      setCaption("");
+
+      router.push("/(tabs)");
     } catch (error) {
-      console.log(error);
+      console.log("Error sharing post");
     } finally {
       setIsSharing(false);
     }
   };
 
-  if (!selectedImage)
+  if (!selectedImage) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -94,6 +98,7 @@ export default function CreateScreen() {
         </TouchableOpacity>
       </View>
     );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -138,6 +143,7 @@ export default function CreateScreen() {
           contentContainerStyle={styles.scrollContent}
           bounces={false}
           keyboardShouldPersistTaps="handled"
+          contentOffset={{ x: 0, y: 100 }}
         >
           <View style={[styles.content, isSharing && styles.contentDisabled]}>
             {/* IMAGE SECTION */}
